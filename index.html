@@ -16,7 +16,7 @@
 .lamp-right img{left:-337.6666666666667px;top:-450.0px}
 </style>
 
-<link rel="preload" as="image" href="cover-background-clean.0a85e12bd8ae.webp" fetchpriority="high"><link rel="preload" as="image" href="cover-stars.499a84f8f94c.webp" fetchpriority="high"><link rel="preload" as="image" href="cover-distant-lights.812e7a2c9bf1.webp" fetchpriority="high"><link rel="preload" as="image" href="cover-road-lights.f56875630a2e.webp" fetchpriority="high"><link rel="preload" as="image" href="cover-title.a6bf8fe92194.webp" fetchpriority="high"><link rel="preload" as="image" href="cover-trail.db893c74a943.webp" fetchpriority="high"><link rel="preload" as="image" href="cover-start.7c1fd1483ae9.webp" fetchpriority="high"><link rel="preload" as="image" href="cover-plane.c86eed7848e9.webp" fetchpriority="high"><link rel="preload" as="image" href="cover-pose-static.c93607d5b019.webp" fetchpriority="high"><link rel="preload" as="image" href="cover-pose-cloth-color.cea94f12c58b.webp" fetchpriority="high"><link rel="preload" as="image" href="cover-pose-collar.21d2a3eedd2b.webp" fetchpriority="high"><script defer src="report.3acbc5c627b1.js"></script>
+<link rel="preload" as="image" href="cover-background-clean.0a85e12bd8ae.webp" fetchpriority="high"><link rel="preload" as="image" href="cover-stars.499a84f8f94c.webp" fetchpriority="high"><link rel="preload" as="image" href="cover-distant-lights.812e7a2c9bf1.webp" fetchpriority="high"><link rel="preload" as="image" href="cover-road-lights.f56875630a2e.webp" fetchpriority="high"><link rel="preload" as="image" href="cover-title.a6bf8fe92194.webp" fetchpriority="high"><link rel="preload" as="image" href="cover-trail.db893c74a943.webp" fetchpriority="high"><link rel="preload" as="image" href="cover-start.7c1fd1483ae9.webp" fetchpriority="high"><link rel="preload" as="image" href="cover-plane.c86eed7848e9.webp" fetchpriority="high"><link rel="preload" as="image" href="cover-pose-static.c93607d5b019.webp" fetchpriority="high"><link rel="preload" as="image" href="cover-pose-cloth-color.cea94f12c58b.webp" fetchpriority="high"><link rel="preload" as="image" href="cover-pose-collar.21d2a3eedd2b.webp" fetchpriority="high"><script defer src="report.e814f4385de8.js"></script>
 </head>
 <body>
 <main class="device-wrap"><div id="phone" class="phone"><div id="stage" class="stage" data-design-width="1125" data-design-height="2436">
@@ -102,15 +102,32 @@ window.EMBEDDED_ASSETS={"loader-digit-0":"data:image/webp;base64,UklGRj4DAABXRUJ
   let reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   try { const preference = localStorage.getItem('flight-reduced-motion'); if (preference !== null) reduced = preference === 'true'; } catch {}
   if (window.FLIGHT_FORCE_MOTION || new URLSearchParams(location.search).get('motion') === 'on') reduced = false;
-  const loop = !reduced && window.gsap ? gsap.timeline({ repeat: -1 })
-    .to('.window-shade', { yPercent: -102, duration: 1.1, ease: 'sine.inOut' })
-    .to({}, { duration: 1.5 })
-    .to('.window-shade', { yPercent: 0, duration: 1.1, ease: 'sine.inOut' })
-    .to({}, { duration: 1.5 }) : null;
-  window.__flightLoadingBoot = { loop, releaseViewport() {
-    removeEventListener('resize', fit);
-    window.visualViewport?.removeEventListener('resize', fit);
-  } };
+  let loop = null, timer = null;
+  const loading = {
+    get loop() { return loop; },
+    start(isReduced, startedAt = 0) {
+      this.stop();
+      window.gsap?.set('.window-shade', { yPercent: 0 });
+      if (isReduced || !window.gsap) return;
+      // Count from navigation, not from the arrival of the deferred report bundle.
+      timer = setTimeout(() => {
+        timer = null;
+        loop = gsap.timeline({ repeat: -1 })
+          .to('.window-shade', { yPercent: -102, duration: 1.1, ease: 'sine.inOut' })
+          .to({}, { duration: 1.5 })
+          .to('.window-shade', { yPercent: 0, duration: 1.1, ease: 'sine.inOut' })
+          .to({}, { duration: 1.5 });
+      }, Math.max(0, 5000 - (performance.now() - startedAt)));
+    },
+    stop() { clearTimeout(timer); timer = null; loop?.kill(); loop = null; },
+    pause() { clearTimeout(timer); timer = null; loop?.pause(); },
+    releaseViewport() {
+      removeEventListener('resize', fit);
+      window.visualViewport?.removeEventListener('resize', fit);
+    }
+  };
+  window.__flightLoadingBoot = loading;
+  loading.start(reduced);
 })();
 </script>
 </body></html>
